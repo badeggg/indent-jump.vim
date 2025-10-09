@@ -14,7 +14,13 @@
 "
 """""" ↓↓↓
 
-" Find the jump target based on indentation.
+" Find the jump target based on indentation. The precise description is that,
+" find the first line(not counting empty lines) which has the same/less/more
+" indentation level compared to current line in the specified direction,
+" exception is that when level is 0(same level), and the same indentation lines
+" construct a continuous block(not counting empty lines), the target line shold
+" be the last line of the block in the specified direction.
+"
 " It returns a keystroke sequence string which can move the cursor to the target
 " line, e.g. '20G' to move cursor to line 20, or an empty stirng if no
 " target is found.
@@ -28,6 +34,8 @@ function! IndentJump(direction, level)
     " Search from ref_line.
     let lnum = ref_line + a:direction
 
+    let last_same_indentation_line = 0
+    let is_continuous = 1
     while lnum > 0 && lnum <= line('$')
         " Skip empty or whitespace-only lines
         if getline(lnum) =~ '^\s*$'
@@ -37,16 +45,41 @@ function! IndentJump(direction, level)
 
         let target_indent = indent(lnum)
 
-        " Check based on the requested level
-        if (a:level == 0 && target_indent == current_indent) ||
-           \ (a:level == 1 && target_indent > current_indent) ||
-           \ (a:level == -1 && target_indent < current_indent)
-            " Target found
+        if a:level == 0
+           \ && target_indent == current_indent
+           \ && !is_continuous
             return lnum . 'G'
+        endif
+
+        if a:level == 0
+           \ && target_indent != current_indent
+           \ && is_continuous
+           \ && last_same_indentation_line
+            return last_same_indentation_line . 'G'
+        endif
+
+        " Check based on the requested level
+        if (a:level == 1 && target_indent > current_indent) ||
+           \ (a:level == -1 && target_indent < current_indent)
+            return lnum . 'G'
+        endif
+
+        if target_indent == current_indent
+            let last_same_indentation_line = lnum
+        endif
+
+        if target_indent != current_indent
+            let is_continuous = 0
         endif
 
         let lnum += a:direction
     endwhile
+
+    if a:level == 0
+       \ && is_continuous
+       \ && last_same_indentation_line
+        return last_same_indentation_line . 'G'
+    endif
 
     return '' " No target found
 endfunction
