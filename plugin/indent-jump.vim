@@ -28,22 +28,22 @@
 " direction: 1 for forward (down), -1 for backward (up)
 "     level: 0 for same, 1 for more, -1 for less
 function! IndentJump(direction, level)
-    let ref_line = line('.')
-    let current_indent = indent(ref_line)
+    let l:ref_line = line('.')
+    let l:current_indent = indent(ref_line)
 
     " Search from ref_line.
-    let lnum = ref_line + a:direction
+    let l:lnum = ref_line + a:direction
 
-    let last_same_indentation_line = 0
-    let is_continuous = 1
+    let l:last_same_indentation_line = 0
+    let l:is_continuous = 1
     while lnum > 0 && lnum <= line('$')
         " Skip empty or whitespace-only lines
         if getline(lnum) =~ '^\s*$'
-            let lnum += a:direction
+            let l:lnum += a:direction
             continue
         endif
 
-        let target_indent = indent(lnum)
+        let l:target_indent = indent(lnum)
 
         if a:level == 0
            \ && target_indent == current_indent
@@ -65,14 +65,14 @@ function! IndentJump(direction, level)
         endif
 
         if target_indent == current_indent
-            let last_same_indentation_line = lnum
+            let l:last_same_indentation_line = lnum
         endif
 
         if target_indent != current_indent
-            let is_continuous = 0
+            let l:is_continuous = 0
         endif
 
-        let lnum += a:direction
+        let l:lnum += a:direction
     endwhile
 
     if a:level == 0
