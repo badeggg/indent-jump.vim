@@ -1,19 +1,3 @@
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Jump between lines based on indentation
-"         <leader>i : jump to next     line with same indentation
-" <leader><leader>i : jump to previous line with same indentation
-"         <leader>u : jump to next     line with less indentation
-" <leader><leader>u : jump to previous line with less indentation
-"         <leader>o : jump to next     line with more indentation
-" <leader><leader>o : jump to previous line with more indentation
-"
-" Letter usage explanation:
-" 'i' represents indentation.
-" 'u' is used since it sit at the left of letter 'i' on keyboard
-" 'o' is used since it sit at the right of letter 'i' on keyboard
-"
-"""""" ↓↓↓
-
 " Find the jump target based on indentation. The precise description is that,
 " find the first line(not counting empty lines) which has the same/less/more
 " indentation level compared to current line in the specified direction,
@@ -84,23 +68,49 @@ function! IndentJump(direction, level)
     return '' " No target found
 endfunction
 
+" Find the next empty line at the specified direction
+"
+" It returns a keystroke sequence string which can move the cursor to the target
+" line, e.g. '20G' to move cursor to line 20, or an empty stirng if no
+" target is found.
+"
+" direction: 1 for forward (down), -1 for backward (up)
+function! JumpToEmptyLine(direction)
+    let l:ref_line = line('.')
+    let l:current_indent = indent(ref_line)
+
+    " Search from ref_line.
+    let l:lnum = ref_line + a:direction
+
+    while lnum > 0 && lnum <= line('$')
+        " Have found empty or whitespace-only lines
+        if getline(lnum) =~ '^\s*$'
+            return lnum . 'G'
+        endif
+
+        let l:lnum += a:direction
+    endwhile
+
+    return '' " No target found
+endfunction
+
 " Key mappings in normal mode
-nnoremap <expr>         <leader>i IndentJump( 1,  0)
-nnoremap <expr> <leader><leader>i IndentJump(-1,  0)
-nnoremap <expr>         <leader>u IndentJump( 1, -1)
-nnoremap <expr> <leader><leader>u IndentJump(-1, -1)
-nnoremap <expr>         <leader>o IndentJump( 1,  1)
-nnoremap <expr> <leader><leader>o IndentJump(-1,  1)
+nnoremap <expr>         <leader>i      IndentJump( 1,  0)
+nnoremap <expr> <leader><leader>i      IndentJump(-1,  0)
+nnoremap <expr>         <leader>u      IndentJump( 1, -1)
+nnoremap <expr> <leader><leader>u      IndentJump(-1, -1)
+nnoremap <expr>         <leader>o      IndentJump( 1,  1)
+nnoremap <expr> <leader><leader>o      IndentJump(-1,  1)
+nnoremap <expr>         <leader>e JumpToEmptyLine(1)
+nnoremap <expr> <leader><leader>e JumpToEmptyLine(-1)
 
 
 " Key mappings in visual mode
-vnoremap <expr>         <leader>i IndentJump( 1,  0)
-vnoremap <expr> <leader><leader>i IndentJump(-1,  0)
-vnoremap <expr>         <leader>u IndentJump( 1, -1)
-vnoremap <expr> <leader><leader>u IndentJump(-1, -1)
-vnoremap <expr>         <leader>o IndentJump( 1,  1)
-vnoremap <expr> <leader><leader>o IndentJump(-1,  1)
-
-"""""" ↑↑↑
-" Jump between lines based on indentation 
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+vnoremap <expr>         <leader>i      IndentJump( 1,  0)
+vnoremap <expr> <leader><leader>i      IndentJump(-1,  0)
+vnoremap <expr>         <leader>u      IndentJump( 1, -1)
+vnoremap <expr> <leader><leader>u      IndentJump(-1, -1)
+vnoremap <expr>         <leader>o      IndentJump( 1,  1)
+vnoremap <expr> <leader><leader>o      IndentJump(-1,  1)
+vnoremap <expr>         <leader>e JumpToEmptyLine(1)
+vnoremap <expr> <leader><leader>e JumpToEmptyLine(-1)
