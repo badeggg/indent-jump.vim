@@ -2,8 +2,8 @@
 " find the first line(not counting empty lines) which has the same/less/more
 " indentation level compared to current line in the specified direction,
 " exception is that when level is 0(same level), and the same indentation lines
-" construct a continuous block(not counting empty lines), the target line shold
-" be the last line of the block in the specified direction.
+" construct a continuous block(not counting empty lines), the target line is
+" the last line of the block in the specified direction.
 "
 " It returns a keystroke sequence string which can move the cursor to the target
 " line, e.g. '20G' to move cursor to line 20, or an empty stirng if no
@@ -13,46 +13,53 @@
 "     level: 0 for same, 1 for more, -1 for less
 function! IndentJump(direction, level)
     let l:ref_line = line('.')
-    let l:current_indent = indent(ref_line)
+    let l:current_indent = indent(l:ref_line)
 
     " Search from ref_line.
-    let l:lnum = ref_line + a:direction
+    let l:lnum = l:ref_line + a:direction
 
     let l:last_same_indentation_line = 0
     let l:is_continuous = 1
-    while lnum > 0 && lnum <= line('$')
-        " Skip empty or whitespace-only lines
-        if getline(lnum) =~ '^\s*$'
+    let l:target_indent = -1
+    while l:lnum > 0 && l:lnum <= line('$')
+        if getline(l:lnum) =~ '^\s*$'
+            " Skip empty or whitespace-only lines
             let l:lnum += a:direction
+            continue
+        elseif l:target_indent == -1
+            let l:target_indent = indent(l:lnum)
+        endif
+
+        if l:target_indent == -1
+            " Current line is in an empty line block, we have not figure out
+            " the target indent to find..
             continue
         endif
 
-        let l:target_indent = indent(lnum)
-
         if a:level == 0
-           \ && target_indent == current_indent
-           \ && !is_continuous
-            return lnum . 'G'
+           \ && l:target_indent == l:current_indent
+           \ && !l:is_continuous
+            return l:lnum . 'G'
         endif
 
         if a:level == 0
-           \ && target_indent != current_indent
-           \ && is_continuous
-           \ && last_same_indentation_line
-            return last_same_indentation_line . 'G'
+           \ && l:target_indent != l:current_indent
+           \ && l:is_continuous
+           \ && l:last_same_indentation_line
+            return l:last_same_indentation_line . 'G'
         endif
 
         " Check based on the requested level
-        if (a:level == 1 && target_indent > current_indent) ||
-           \ (a:level == -1 && target_indent < current_indent)
-            return lnum . 'G'
+        if (a:level == 1 && l:target_indent > l:current_indent) ||
+           \ (a:level == -1 && l:target_indent < l:current_indent)
+            return l:lnum . 'G'
         endif
 
-        if target_indent == current_indent
-            let l:last_same_indentation_line = lnum
+        if l:target_indent == l:current_indent
+            let l:last_same_indentation_line = l:lnum
         endif
 
-        if target_indent != current_indent
+        if l:target_indent != l:current_indent
             let l:is_continuous = 0
         endif
 
@@ -60,15 +67,17 @@ function! IndentJump(direction, level)
     endwhile
 
     if a:level == 0
-       \ && is_continuous
-       \ && last_same_indentation_line
-        return last_same_indentation_line . 'G'
+       \ && l:is_continuous
+       \ && l:last_same_indentation_line
+        return l:last_same_indentation_line . 'G'
     endif
 
     return '' " No target found
 endfunction
 
-" Find the next empty line at the specified direction
+" Find the next empty or whitespace-only line, which is not at the same
+" block as current line, in the specified direction. By 'block', we mean
+" few continuous empty lines.
 "
 " It returns a keystroke sequence string which can move the cursor to the target
 " line, e.g. '20G' to move cursor to line 20, or an empty stirng if no
@@ -77,15 +86,17 @@ endfunction
 " direction: 1 for forward (down), -1 for backward (up)
 function! JumpToEmptyLine(direction)
     let l:ref_line = line('.')
-    let l:current_indent = indent(ref_line)
 
     " Search from ref_line.
-    let l:lnum = ref_line + a:direction
+    let l:lnum = l:ref_line + a:direction
 
-    while lnum > 0 && lnum <= line('$')
-        " Have found empty or whitespace-only lines
-        if getline(lnum) =~ '^\s*$'
-            return lnum . 'G'
+    let l:is_continuous = 1
+    while l:lnum > 0 && l:lnum <= line('$')
+        if getline(l:lnum) !~ '^\s*$'
+            let l:is_continuous = 0
+        elseif !l:is_continuous
+            " Have found
+            return l:lnum . 'G'
         endif
 
         let l:lnum += a:direction
