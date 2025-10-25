@@ -12,54 +12,56 @@
 " direction: 1 for forward (down), -1 for backward (up)
 "     level: 0 for same, 1 for more, -1 for less
 function! IndentJump(direction, level)
-    let l:ref_line = line('.')
-    let l:current_indent = indent(l:ref_line)
-
-    " Search from ref_line.
-    let l:lnum = l:ref_line + a:direction
-
+    " Search from next line.
+    let l:lnum = line('.') + a:direction
     let l:last_same_indentation_line = 0
     let l:is_continuous = 1
-    let l:target_indent = -1
+    let l:target_indent = getline(line('.')) =~ '^\s*$' ? -1 : indent('.')
     while l:lnum > 0 && l:lnum <= line('$')
         if getline(l:lnum) =~ '^\s*$'
             " Skip empty or whitespace-only lines
             let l:lnum += a:direction
             continue
         elseif l:target_indent == -1
+            " Now we know what indent to find
             let l:target_indent = indent(l:lnum)
+            let l:lnum += a:direction
+            continue
         endif
 
         if l:target_indent == -1
             " Current line is in an empty line block, we have not figure out
             " the target indent to find..
+            let l:lnum += a:direction
             continue
         endif
 
+        let l:line_indent = indent(l:lnum)
+
         if a:level == 0
-           \ && l:target_indent == l:current_indent
+           \ && l:line_indent == l:target_indent
            \ && !l:is_continuous
             return l:lnum . 'G'
         endif
 
         if a:level == 0
-           \ && l:target_indent != l:current_indent
+           \ && l:line_indent != l:target_indent
            \ && l:is_continuous
            \ && l:last_same_indentation_line
             return l:last_same_indentation_line . 'G'
         endif
 
         " Check based on the requested level
-        if (a:level == 1 && l:target_indent > l:current_indent) ||
-           \ (a:level == -1 && l:target_indent < l:current_indent)
+        if (a:level == 1 && l:line_indent > l:target_indent) ||
+           \ (a:level == -1 && l:line_indent < l:target_indent)
             return l:lnum . 'G'
         endif
 
-        if l:target_indent == l:current_indent
+        if l:line_indent == l:target_indent
             let l:last_same_indentation_line = l:lnum
         endif
 
-        if l:target_indent != l:current_indent
+        if l:line_indent != l:target_indent
             let l:is_continuous = 0
         endif
 
@@ -85,11 +87,8 @@ endfunction
 "
 " direction: 1 for forward (down), -1 for backward (up)
 function! JumpToEmptyLine(direction)
-    let l:ref_line = line('.')
-
-    " Search from ref_line.
-    let l:lnum = l:ref_line + a:direction
-
+    " Search from next line
+    let l:lnum = line('.') + a:direction
     let l:is_continuous = 1
     while l:lnum > 0 && l:lnum <= line('$')
         if getline(l:lnum) !~ '^\s*$'
